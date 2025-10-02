@@ -203,6 +203,7 @@
                                             <i class="fas fa-sort-down" th:if="${sortBy == 'id' and sortDir == 'desc'}"></i>
                                         </a>
                                     </th>
+                                    <th>Icon</th>
                                     <th>
                                         <a th:href="@{/categories(page=${currentPage}, size=${pageSize}, sortBy='name', sortDir=${sortBy == 'name' ? reverseSortDir : 'asc'}, keyword=${keyword})}"
                                            class="text-decoration-none text-white">
@@ -228,13 +229,15 @@
                                 <tr th:each="category : ${categories}">
                                     <td th:text="${category.id}">1</td>
                                     <td>
-                                        <!-- Sử dụng icon Font Awesome thay vì load ảnh -->
-                                        <i class="fas fa-tags fa-2x text-primary"></i>
+                                        <img th:if="${category.images != null and !category.images.isEmpty()}"
+                                             th:src="@{${'/uploads/categories/' + category.images}}" 
+                                             class="category-icon" alt="Category Icon">
+                                        <i th:if="${category.images == null or category.images.isEmpty()}"
+                                           class="fas fa-tags fa-2x text-muted"></i>
                                     </td>
                                     <td>
                                         <strong th:text="${category.name}">Category Name</strong>
                                     </td>
-                                    <td>Không có</td>
                                     <td>
                                         <div class="btn-group" role="group">
                                             <a th:href="@{/categories/view/{id}(id=${category.id})}"
