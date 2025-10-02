@@ -262,7 +262,7 @@
                                         <tbody>
                                             <tr th:each="product : ${user.products}">
                                                 <td th:text="${product.id}">1</td>
-                                                <td th:text="${product.name}">Product Name</td>
+                                                <td th:text="${product.title}">Product Name</td>
                                                 <td th:text="${#numbers.formatDecimal(product.price, 0, 2)} + ' VNĐ'">100,000 VNĐ</td>
                                                 <td>
                                                     <span class="badge bg-success" th:if="${product.status}">Hoạt động</span>
