@@ -1,5 +1,6 @@
 package vn.iotstar.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -32,14 +33,16 @@ public class User {
     private Role role = Role.USER; // Default role is USER
     
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Product> products;
-    
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "UserCategory",
         joinColumns = @JoinColumn(name = "userid"),
         inverseJoinColumns = @JoinColumn(name = "categoryid")
     )
+    @JsonIgnore
     private List<Category> categories;
     
     // Constructors

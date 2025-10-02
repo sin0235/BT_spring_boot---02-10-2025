@@ -71,10 +71,20 @@ public class ProductApiController {
                 products = productService.findAll(pageable);
             }
             
+            // Populate additional fields for API response
+            products.getContent().forEach(product -> {
+                if (product.getCategory() != null) {
+                    product.setCategoryName(product.getCategory().getName());
+                }
+                if (product.getUser() != null) {
+                    product.setUserName(product.getUser().getFullname());
+                }
+            });
+
             Response<Page<Product>> response = Response.success("Lấy danh sách sản phẩm thành công", products)
-                    .withPagination(products.getTotalElements(), products.getTotalPages(), 
+                    .withPagination(products.getTotalElements(), products.getTotalPages(),
                                   page, size);
-            
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -91,7 +101,14 @@ public class ProductApiController {
             Optional<Product> product = productService.findById(id);
             
             if (product.isPresent()) {
-                return ResponseEntity.ok(Response.success("Lấy thông tin sản phẩm thành công", product.get()));
+                Product prod = product.get();
+                if (prod.getCategory() != null) {
+                    prod.setCategoryName(prod.getCategory().getName());
+                }
+                if (prod.getUser() != null) {
+                    prod.setUserName(prod.getUser().getFullname());
+                }
+                return ResponseEntity.ok(Response.success("Lấy thông tin sản phẩm thành công", prod));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Response.notFound("Không tìm thấy sản phẩm với ID: " + id));
@@ -181,6 +198,12 @@ public class ProductApiController {
             }
 
             Product savedProduct = productService.save(product);
+            if (savedProduct.getCategory() != null) {
+                savedProduct.setCategoryName(savedProduct.getCategory().getName());
+            }
+            if (savedProduct.getUser() != null) {
+                savedProduct.setUserName(savedProduct.getUser().getFullname());
+            }
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Response.created("Thêm sản phẩm thành công", savedProduct));
 
@@ -277,6 +300,12 @@ public class ProductApiController {
             }
 
             Product updatedProduct = productService.save(product);
+            if (updatedProduct.getCategory() != null) {
+                updatedProduct.setCategoryName(updatedProduct.getCategory().getName());
+            }
+            if (updatedProduct.getUser() != null) {
+                updatedProduct.setUserName(updatedProduct.getUser().getFullname());
+            }
             return ResponseEntity.ok(Response.success("Cập nhật sản phẩm thành công", updatedProduct));
 
         } catch (Exception e) {

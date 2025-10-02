@@ -1,5 +1,6 @@
 package vn.iotstar.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,10 +30,12 @@ public class Product {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @JsonIgnore
     private Category category;
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userid", nullable = false)
+    @JsonIgnore
     private User user;
     
     private Integer discount = 0;
@@ -48,9 +51,16 @@ public class Product {
     // Convenience fields for form binding (transient - not stored in DB)
     @Transient
     private Integer categoryId;
-    
+
     @Transient
     private Integer userId;
+
+    // Additional fields for API response (transient - not stored in DB)
+    @Transient
+    private String categoryName;
+
+    @Transient
+    private String userName;
     
     // Constructors
     public Product() {}
@@ -187,5 +197,22 @@ public class Product {
     
     public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    // Getters and setters for additional API fields
+    public String getCategoryName() {
+        return (category != null) ? category.getName() : categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+    public String getUserName() {
+        return (user != null) ? user.getFullname() : userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 }

@@ -342,7 +342,10 @@
             }
 
             html += '</tbody></table></div>';
-            $('#productsTableContainer').html(html);
+
+            // Update only the table, keep pagination if it exists
+            $('#productsTableContainer .table-responsive').remove();
+            $('#productsTableContainer').prepend(html);
         }
 
         function displayPagination(pageData) {
@@ -372,7 +375,14 @@
             }
 
             html += '</ul></nav>';
-            $('#productsTableContainer').append(html);
+
+            // Update pagination if it exists, otherwise append it
+            const existingPagination = $('#productsTableContainer .pagination').parent();
+            if (existingPagination.length > 0) {
+                existingPagination.replaceWith(html);
+            } else {
+                $('#productsTableContainer').append(html);
+            }
         }
 
         function changePage(page) {
