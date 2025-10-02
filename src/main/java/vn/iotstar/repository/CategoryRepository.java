@@ -32,4 +32,21 @@ public interface CategoryRepository extends JpaRepository<Category, Integer> {
 
     // Đếm tổng số categories
     long count();
+
+    // Tìm category theo tên
+    Optional<Category> findByName(String name);
+    
+    // Tìm các danh mục có tên chứa (không phân biệt chữ hoa chữ thường)
+    List<Category> findByNameContainingIgnoreCase(String name);
+    
+    // Tìm tất cả danh mục được sắp xếp theo thứ tự tăng dần
+    List<Category> findAllByOrderBySortOrderAsc();
+    
+    // Tìm danh mục có sản phẩm
+    @Query("SELECT DISTINCT c FROM Category c LEFT JOIN FETCH c.products WHERE c.products IS NOT EMPTY")
+    List<Category> findCategoriesWithProducts();
+    
+    // Đếm sản phẩm trong danh mục
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.category.id = :categoryId")
+    Long countProductsInCategory(@Param("categoryId") Integer categoryId);
 }

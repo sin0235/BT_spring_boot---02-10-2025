@@ -19,7 +19,7 @@ type Product {
     title: String!
     quantity: Int!
     description: String
-    price: Float!
+    price: String!
     images: String
     user: User!
     category: Category

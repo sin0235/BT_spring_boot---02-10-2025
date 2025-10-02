@@ -28,7 +28,7 @@ public class ProductService {
     public List<Product> findAll() {
         logger.debug("findAll() called");
         try {
-            List<Product> products = productRepository.findAllOrderByCreateDateDesc();
+            List<Product> products = productRepository.findAllByOrderByCreateDateDesc();
             logger.info("findAll() returned {} products", products == null ? 0 : products.size());
             return products;
         } catch (Exception e) {
@@ -53,7 +53,7 @@ public class ProductService {
     public List<Product> findAllOrderByPriceAsc() {
         logger.debug("findAllOrderByPriceAsc() called");
         try {
-            List<Product> products = productRepository.findAllOrderByPriceAsc();
+            List<Product> products = productRepository.findAllByOrderByPriceAsc();
             logger.info("findAllOrderByPriceAsc() returned {} products", products == null ? 0 : products.size());
             return products;
         } catch (Exception e) {
@@ -63,11 +63,11 @@ public class ProductService {
     }
 
     public List<Product> findByUserId(Integer userId) {
-        return productRepository.findByUserId(userId);
+        return productRepository.findByUser_Id(userId);
     }
     
     public Optional<Product> findById(Integer id) {
-        return productRepository.findById(id);
+        return productRepository.findByIdWithRelations(id);
     }
     
     
@@ -119,7 +119,7 @@ public class ProductService {
     public List<Product> findByCategoryId(Integer categoryId) {
         logger.debug("findByCategoryId() called for category ID: {}", categoryId);
         try {
-            List<Product> products = productRepository.findByCategoryId(categoryId);
+            List<Product> products = productRepository.findByCategory_Id(categoryId);
             logger.info("findByCategoryId() returned {} products for category ID: {}", products == null ? 0 : products.size(), categoryId);
             return products;
         } catch (Exception e) {
@@ -132,7 +132,7 @@ public class ProductService {
         logger.debug("findByCategoryId(pageable) called for category ID: {}, page: {}, size: {}",
                 categoryId, pageable.getPageNumber(), pageable.getPageSize());
         try {
-            Page<Product> products = productRepository.findByCategoryId(categoryId, pageable);
+            Page<Product> products = productRepository.findByCategory_Id(categoryId, pageable);
             logger.info("findByCategoryId(pageable) returned {} products for category ID: {}",
                     products == null ? 0 : products.getTotalElements(), categoryId);
             return products;
@@ -149,7 +149,7 @@ public class ProductService {
         try {
             Page<Product> products;
             if (name == null || name.trim().isEmpty()) {
-                products = productRepository.findByCategoryId(categoryId, pageable);
+                products = productRepository.findByCategory_Id(categoryId, pageable);
             } else {
                 products = productRepository.findByTitleContainingIgnoreCaseAndCategoryId(name.trim(), categoryId, pageable);
             }
