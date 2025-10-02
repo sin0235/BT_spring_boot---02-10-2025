@@ -125,7 +125,7 @@
                     Chi tiết Category
                 </h2>
                 <div>
-                    <a th:href="@{/categories/edit/{id}(id=${category.cateid})}" class="btn btn-warning me-2">
+                    <a th:if="${loggedInUser != null and loggedInUser.role.toString() == 'ADMIN'}" th:href="@{/categories/edit/{id}(id=${category.cateid})}" class="btn btn-warning me-2">
                         <i class="fas fa-edit me-2"></i>Chỉnh sửa
                     </a>
                     <a href="/categories" class="btn btn-outline-secondary">

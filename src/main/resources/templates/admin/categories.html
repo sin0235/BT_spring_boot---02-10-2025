@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Categories - Admin Dashboard</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 25px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="navbar-brand mb-0">
+                        <i class="fas fa-layer-group me-2"></i>
+                        Quản lý Categories
+                    </h1>
+                    <p class="mb-0">Danh sách danh mục sản phẩm</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/admin/dashboard" class="btn btn-outline-light me-2">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Về Dashboard
+                    </a>
+                    <a href="/auth/logout" class="btn btn-outline-light">
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        Đăng xuất
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mt-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Danh sách Categories
+                </h5>
+                <a href="/categories/new" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    Thêm Category mới
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Search and Filter -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <form th:action="@{/admin/categories}" method="get" class="d-flex">
+                            <input type="hidden" name="page" value="0">
+                            <input type="hidden" name="size" th:value="${pageSize}">
+                            <input type="hidden" name="sortBy" th:value="${sortBy}">
+                            <input type="hidden" name="sortDir" th:value="${sortDir}">
+                            <input type="text" class="form-control me-2" name="keyword"
+                                   placeholder="Tìm kiếm theo tên..." th:value="${keyword}">
+                            <button class="btn btn-outline-primary" type="submit">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <label class="form-label me-2 mb-0">Hiển thị:</label>
+                            <select class="form-select" style="width: auto;" onchange="changePageSize(this.value)">
+                                <option value="5" th:selected="${pageSize == 5}">5</option>
+                                <option value="10" th:selected="${pageSize == 10}">10</option>
+                                <option value="20" th:selected="${pageSize == 20}">20</option>
+                                <option value="50" th:selected="${pageSize == 50}">50</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categories Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="5%">
+                                    <a th:href="@{/admin/categories(page=0, size=${pageSize}, sortBy='id', sortDir=${sortBy == 'id' && sortDir == 'asc' ? 'desc' : 'asc'}, keyword=${keyword})}">
+                                        # <i class="fas fa-sort" th:if="${sortBy != 'id'}"></i>
+                                        <i class="fas fa-sort-up" th:if="${sortBy == 'id' && sortDir == 'asc'}"></i>
+                                        <i class="fas fa-sort-down" th:if="${sortBy == 'id' && sortDir == 'desc'}"></i>
+                                    </a>
+                                </th>
+                                <th width="10%">Icon</th>
+                                <th width="40%">
+                                    <a th:href="@{/admin/categories(page=0, size=${pageSize}, sortBy='name', sortDir=${sortBy == 'name' && sortDir == 'asc' ? 'desc' : 'asc'}, keyword=${keyword})}">
+                                        Tên Category <i class="fas fa-sort" th:if="${sortBy != 'name'}"></i>
+                                        <i class="fas fa-sort-up" th:if="${sortBy == 'name' && sortDir == 'asc'}"></i>
+                                        <i class="fas fa-sort-down" th:if="${sortBy == 'name' && sortDir == 'desc'}"></i>
+                                    </a>
+                                </th>
+                                <th width="20%">
+                                    <a th:href="@{/admin/categories(page=0, size=${pageSize}, sortBy='createDate', sortDir=${sortBy == 'createDate' && sortDir == 'asc' ? 'desc' : 'asc'}, keyword=${keyword})}">
+                                        Ngày tạo <i class="fas fa-sort" th:if="${sortBy != 'createDate'}"></i>
+                                        <i class="fas fa-sort-up" th:if="${sortBy == 'createDate' && sortDir == 'asc'}"></i>
+                                        <i class="fas fa-sort-down" th:if="${sortBy == 'createDate' && sortDir == 'desc'}"></i>
+                                    </a>
+                                </th>
+                                <th width="25%">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(categories)}">
+                                <td colspan="5" class="text-center">Không có category nào</td>
+                            </tr>
+                            <tr th:each="category, iterStat : ${categories}">
+                                <td th:text="${currentPage * pageSize + iterStat.index + 1}">1</td>
+                                <td>
+                                    <div th:if="${category.images}" style="width: 40px; height: 40px;">
+                                        <img th:src="@{/uploads/categories/{file}(file=${category.images})}"
+                                             class="rounded" style="width: 100%; height: 100%; object-fit: cover;" alt="Icon">
+                                    </div>
+                                    <i th:if="${!category.images}" class="fas fa-tag fa-2x text-muted"></i>
+                                </td>
+                                <td th:text="${category.name}">Category Name</td>
+                                <td th:text="${#dates.format(category.createDate, 'dd/MM/yyyy')}">01/01/2024</td>
+                                <td>
+                                    <a th:href="@{/categories/view/{id}(id=${category.id})}" class="btn btn-sm btn-outline-info me-1">
+                                        <i class="fas fa-eye"></i> Xem
+                                    </a>
+                                    <a th:href="@{/categories/edit/{id}(id=${category.id})}" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i> Sửa
+                                    </a>
+                                    <form th:action="@{/categories/delete/{id}(id=${category.id})}" method="post" style="display: inline;"
+                                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa category này?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav th:if="${totalPages > 1}" aria-label="Categories pagination">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous -->
+                        <li class="page-item" th:if="${!categoryPage.first}">
+                            <a class="page-link"
+                               th:href="@{/admin/categories(page=${currentPage - 1}, size=${pageSize}, sortBy=${sortBy}, sortDir=${sortDir}, keyword=${keyword})}">
+                                Trước
+                            </a>
+                        </li>
+
+                        <!-- Page numbers -->
+                        <li th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                            th:class="page-item" th:classappend="${i == currentPage} ? active : ''">
+                            <a class="page-link"
+                               th:href="@{/admin/categories(page=${i}, size=${pageSize}, sortBy=${sortBy}, sortDir=${sortDir}, keyword=${keyword})}"
+                               th:text="${i + 1}">1</a>
+                        </li>
+
+                        <!-- Next -->
+                        <li class="page-item" th:if="${!categoryPage.last}">
+                            <a class="page-link"
+                               th:href="@{/admin/categories(page=${currentPage + 1}, size=${pageSize}, sortBy=${sortBy}, sortDir=${sortDir}, keyword=${keyword})}">
+                                Sau
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <!-- Results info -->
+                <div class="text-muted mt-2">
+                    Hiển thị <span th:text="${currentPage * pageSize + 1}">1</span> -
+                    <span th:text="${currentPage * pageSize + categories.size()}">10</span>
+                    của <span th:text="${totalItems}">100</span> kết quả
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function changePageSize(size) {
+            const url = new URL(window.location);
+            url.searchParams.set('size', size);
+            url.searchParams.set('page', '0');
+            window.location.href = url.toString();
+        }
+    </script>
+</body>
+</html>
