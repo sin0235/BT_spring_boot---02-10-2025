@@ -249,10 +249,10 @@
                             <i class="fas fa-users me-2"></i>
                             Danh sách Users
                         </h5>
-                        <a href="/users/new" class="btn btn-primary" target="_blank">
+                        <button class="btn btn-primary" onclick="openUserModal()">
                             <i class="fas fa-plus me-1"></i>
                             Thêm User
-                        </a>
+                        </button>
                     </div>
                     <div class="card-body">
                         <!-- Search and Filter -->
@@ -415,6 +415,50 @@
         </div>
     </div>
 
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalTitle">Thêm User</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="userForm">
+                        <input type="hidden" id="userId">
+                        <div class="mb-3">
+                            <label for="userFullname" class="form-label">Họ tên *</label>
+                            <input type="text" class="form-control" id="userFullname" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userPhone" class="form-label">Số điện thoại</label>
+                            <input type="tel" class="form-control" id="userPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label for="userRole" class="form-label">Vai trò *</label>
+                            <select class="form-select" id="userRole" required>
+                                <option value="USER">User</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="userPasswordGroup">
+                            <label for="userPassword" class="form-label">Mật khẩu *</label>
+                            <input type="password" class="form-control" id="userPassword" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUserForm()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-dark text-white text-center py-3 mt-5">
         <div class="container">
@@ -443,8 +487,74 @@
         $(document).ready(function() {
             // Load categories for filter dropdown
             loadCategoriesForFilter();
+
+            // Load initial data for all tabs
+            loadCategories();
+            loadProducts();
+            loadUsers();
+
+            // Setup search functionality
+            $('#categorySearch').on('input', function() {
+                categorySearch = $(this).val();
+                currentCategoryPage = 0;
+                loadCategories();
+            });
+
+            $('#productSearch').on('input', function() {
+                productSearch = $(this).val();
+                currentProductPage = 0;
+                loadProducts();
+            });
+
+            $('#userSearch').on('input', function() {
+                userSearch = $(this).val();
+                currentUserPage = 0;
+                loadUsers();
+            });
+
+            // Setup page size changes
+            $('#categoryPageSize').on('change', function() {
+                categoryPageSize = parseInt($(this).val());
+                currentCategoryPage = 0;
+                loadCategories();
+            });
+
+            $('#productPageSize').on('change', function() {
+                productPageSize = parseInt($(this).val());
+                currentProductPage = 0;
+                loadProducts();
+            });
+
+            $('#userPageSize').on('change', function() {
+                userPageSize = parseInt($(this).val());
+                currentUserPage = 0;
+                loadUsers();
+            });
+
+            // Tab change events
+            $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const target = $(e.target).attr('data-bs-target');
+                if (target === '#categories') {
+                    loadCategories();
+                } else if (target === '#products') {
+                    loadProducts();
+                } else if (target === '#users') {
+                    loadUsers();
+                }
+            });
         });
         
+        // Global variables for pagination and search
+        let currentCategoryPage = 0;
+        let currentProductPage = 0;
+        let currentUserPage = 0;
+        let categorySearch = '';
+        let productSearch = '';
+        let userSearch = '';
+        let categoryPageSize = 10;
+        let productPageSize = 10;
+        let userPageSize = 10;
+
         function loadCategoriesForFilter() {
             $.ajax({
                 url: '/api/category?size=1000',
@@ -454,9 +564,9 @@
                         const select = $('#productCategoryFilter');
                         select.empty();
                         select.append('<option value="">Tất cả category</option>');
-                        
+
                         response.body.content.forEach(function(category) {
-                            select.append(`<option value="${category.cateid}">${category.catename}</option>`);
+                            select.append(`<option value="${category.id}">${category.name}</option>`);
                         });
                     }
                 },
@@ -464,6 +574,670 @@
                     console.error('Error loading categories for filter:', error);
                 }
             });
+        }
+
+        // Category Management Functions
+        function loadCategories() {
+            let url = `/api/category?q=${categorySearch}&page=${currentCategoryPage}&size=${categoryPageSize}`;
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        displayCategories(response.body.content || []);
+                        displayCategoryPagination(response.body);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading categories:', error);
+                    showAlert('Lỗi khi tải danh sách category', 'danger');
+                }
+            });
+        }
+
+        function displayCategories(categories) {
+            let html = '';
+
+            if (categories.length === 0) {
+                html = '<tr><td colspan="5" class="text-center">Không có category nào</td></tr>';
+            } else {
+                categories.forEach(function(category, index) {
+                    let iconHtml = category.images ?
+                        `<img src="/uploads/categories/${category.images}" class="rounded" style="width: 40px; height: 40px;" alt="Icon">` :
+                        `<i class="fas fa-tag fa-2x text-muted"></i>`;
+
+                    html += `
+                        <tr>
+                            <td>${currentCategoryPage * categoryPageSize + index + 1}</td>
+                            <td>${iconHtml}</td>
+                            <td>${category.name}</td>
+                            <td>${new Date().toLocaleDateString('vi-VN')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory(${category.id})">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory(${category.id}, '${category.name}')">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            $('#categoriesTableBody').html(html);
+        }
+
+        function displayCategoryPagination(pageData) {
+            let html = '';
+
+            if (pageData.totalPages > 1) {
+                html += '<nav aria-label="Category pagination"><ul class="pagination justify-content-center">';
+
+                // Previous
+                if (!pageData.first) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeCategoryPage(${currentCategoryPage - 1})">Trước</a></li>`;
+                }
+
+                // Page numbers
+                for (let i = 0; i < pageData.totalPages; i++) {
+                    if (i === currentCategoryPage) {
+                        html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
+                    } else {
+                        html += `<li class="page-item"><a class="page-link" href="#" onclick="changeCategoryPage(${i})">${i + 1}</a></li>`;
+                    }
+                }
+
+                // Next
+                if (!pageData.last) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeCategoryPage(${currentCategoryPage + 1})">Sau</a></li>`;
+                }
+
+                html += '</ul></nav>';
+            }
+
+            $('#categoriesPagination').html(html);
+        }
+
+        function changeCategoryPage(page) {
+            currentCategoryPage = page;
+            loadCategories();
+        }
+
+        function openCategoryModal(categoryId = null) {
+            if (categoryId) {
+                // Edit mode
+                $.ajax({
+                    url: `/api/category/${categoryId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            const category = response.body;
+                            $('#categoryModalTitle').text('Chỉnh sửa Category');
+                            $('#categoryId').val(category.id);
+                            $('#categoryName').val(category.name);
+                            $('#categoryModal').modal('show');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi tải thông tin category', 'danger');
+                    }
+                });
+            } else {
+                // Add mode
+                $('#categoryModalTitle').text('Thêm Category');
+                $('#categoryId').val('');
+                $('#categoryName').val('');
+                $('#categoryModal').modal('show');
+            }
+        }
+
+        function saveCategoryForm() {
+            const categoryId = $('#categoryId').val();
+            const categoryName = $('#categoryName').val();
+
+            if (!categoryName || categoryName.trim().length < 2) {
+                showAlert('Tên category phải có ít nhất 2 ký tự', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', categoryName.trim());
+
+            // Handle image upload if provided
+            const imageFile = $('#categoryIcon')[0].files[0];
+            if (imageFile) {
+                formData.append('imageFile', imageFile);
+            }
+
+            const url = categoryId ? `/api/category/${categoryId}` : '/api/category';
+            const method = categoryId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'success' || response.status === 'created') {
+                        showAlert(categoryId ? 'Cập nhật category thành công' : 'Thêm category thành công', 'success');
+                        $('#categoryModal').modal('hide');
+                        loadCategories();
+                    } else {
+                        showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    const errorMessage = xhr.responseJSON?.message || 'Lỗi khi lưu category';
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        }
+
+        function editCategory(id) {
+            openCategoryModal(id);
+        }
+
+        function deleteCategory(id, name) {
+            if (confirm(`Bạn có chắc chắn muốn xóa category "${name}"?`)) {
+                $.ajax({
+                    url: `/api/category/${id}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Xóa category thành công', 'success');
+                            loadCategories();
+                        } else {
+                            showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi xóa category', 'danger');
+                    }
+                });
+            }
+        }
+
+        // Product Management Functions
+        function loadProducts() {
+            let url = `/api/product?q=${productSearch}&page=${currentProductPage}&size=${productPageSize}`;
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        displayProducts(response.body.content || []);
+                        displayProductPagination(response.body);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading products:', error);
+                    showAlert('Lỗi khi tải danh sách sản phẩm', 'danger');
+                }
+            });
+        }
+
+        function displayProducts(products) {
+            let html = '';
+
+            if (products.length === 0) {
+                html = '<tr><td colspan="9" class="text-center">Không có sản phẩm nào</td></tr>';
+            } else {
+                products.forEach(function(product, index) {
+                    let imageHtml = product.images ?
+                        `<img src="/uploads/${product.images}" class="rounded" style="width: 40px; height: 40px;" alt="Product Image">` :
+                        `<i class="fas fa-image fa-2x text-muted"></i>`;
+
+                    let price = new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND'
+                    }).format(product.price);
+
+                    let statusBadge = product.status ?
+                        '<span class="badge bg-success">Hoạt động</span>' :
+                        '<span class="badge bg-secondary">Ngừng bán</span>';
+
+                    html += `
+                        <tr>
+                            <td>${currentProductPage * productPageSize + index + 1}</td>
+                            <td>${imageHtml}</td>
+                            <td>${product.title}</td>
+                            <td>${product.categoryName || 'N/A'}</td>
+                            <td>${price}</td>
+                            <td>${product.quantity}</td>
+                            <td>${product.discount || 0}%</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="editProduct(${product.id})">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${product.id}, '${product.title}')">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            $('#productsTableBody').html(html);
+        }
+
+        function displayProductPagination(pageData) {
+            let html = '';
+
+            if (pageData.totalPages > 1) {
+                html += '<nav aria-label="Product pagination"><ul class="pagination justify-content-center">';
+
+                // Previous
+                if (!pageData.first) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeProductPage(${currentProductPage - 1})">Trước</a></li>`;
+                }
+
+                // Page numbers
+                for (let i = 0; i < pageData.totalPages; i++) {
+                    if (i === currentProductPage) {
+                        html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
+                    } else {
+                        html += `<li class="page-item"><a class="page-link" href="#" onclick="changeProductPage(${i})">${i + 1}</a></li>`;
+                    }
+                }
+
+                // Next
+                if (!pageData.last) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeProductPage(${currentProductPage + 1})">Sau</a></li>`;
+                }
+
+                html += '</ul></nav>';
+            }
+
+            $('#productsPagination').html(html);
+        }
+
+        function changeProductPage(page) {
+            currentProductPage = page;
+            loadProducts();
+        }
+
+        function openProductModal(productId = null) {
+            if (productId) {
+                // Edit mode
+                $.ajax({
+                    url: `/api/product/${productId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            const product = response.body;
+                            $('#productModalTitle').text('Chỉnh sửa Product');
+                            $('#productId').val(product.id);
+                            $('#productName').val(product.title);
+                            $('#productCategory').val(product.categoryId);
+                            $('#productUnitPrice').val(product.price);
+                            $('#productQuantity').val(product.quantity);
+                            $('#productDiscount').val(product.discount || 0);
+                            $('#productDescription').val(product.description || '');
+                            $('#productStatus').val(product.status ? 'true' : 'false');
+                            $('#productModal').modal('show');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi tải thông tin sản phẩm', 'danger');
+                    }
+                });
+            } else {
+                // Add mode
+                $('#productModalTitle').text('Thêm Product');
+                $('#productId').val('');
+                $('#productName').val('');
+                $('#productCategory').val('');
+                $('#productUnitPrice').val('');
+                $('#productQuantity').val('');
+                $('#productDiscount').val('0');
+                $('#productDescription').val('');
+                $('#productStatus').val('true');
+                $('#productModal').modal('show');
+            }
+        }
+
+        function saveProductForm() {
+            const productId = $('#productId').val();
+            const productName = $('#productName').val();
+            const categoryId = $('#productCategory').val();
+            const price = $('#productUnitPrice').val();
+            const quantity = $('#productQuantity').val();
+            const discount = $('#productDiscount').val();
+            const description = $('#productDescription').val();
+            const status = $('#productStatus').val();
+
+            if (!productName || productName.trim().length < 2) {
+                showAlert('Tên sản phẩm phải có ít nhất 2 ký tự', 'warning');
+                return;
+            }
+
+            if (!categoryId) {
+                showAlert('Vui lòng chọn category', 'warning');
+                return;
+            }
+
+            if (!price || parseFloat(price) <= 0) {
+                showAlert('Giá sản phẩm phải > 0', 'warning');
+                return;
+            }
+
+            if (!quantity || parseInt(quantity) < 0) {
+                showAlert('Số lượng phải >= 0', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', productName.trim());
+            formData.append('categoryId', categoryId);
+            formData.append('price', price);
+            formData.append('quantity', quantity);
+            formData.append('discount', discount || 0);
+            formData.append('description', description || '');
+            formData.append('status', status);
+
+            // Handle image upload if provided
+            const imageFile = $('#productImages')[0].files[0];
+            if (imageFile) {
+                formData.append('imageFile', imageFile);
+            }
+
+            const url = productId ? `/api/product/${productId}` : '/api/product';
+            const method = productId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'success' || response.status === 'created') {
+                        showAlert(productId ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công', 'success');
+                        $('#productModal').modal('hide');
+                        loadProducts();
+                    } else {
+                        showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    const errorMessage = xhr.responseJSON?.message || 'Lỗi khi lưu sản phẩm';
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        }
+
+        function editProduct(id) {
+            openProductModal(id);
+        }
+
+        function deleteProduct(id, name) {
+            if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${name}"?`)) {
+                $.ajax({
+                    url: `/api/product/${id}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Xóa sản phẩm thành công', 'success');
+                            loadProducts();
+                        } else {
+                            showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi xóa sản phẩm', 'danger');
+                    }
+                });
+            }
+        }
+
+        // User Management Functions
+        function loadUsers() {
+            let url = `/api/user?q=${userSearch}&page=${currentUserPage}&size=${userPageSize}`;
+
+            $.ajax({
+                url: url,
+                method: 'GET',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        displayUsers(response.body.content || []);
+                        displayUserPagination(response.body);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading users:', error);
+                    showAlert('Lỗi khi tải danh sách người dùng', 'danger');
+                }
+            });
+        }
+
+        function displayUsers(users) {
+            let html = '';
+
+            if (users.length === 0) {
+                html = '<tr><td colspan="7" class="text-center">Không có người dùng nào</td></tr>';
+            } else {
+                users.forEach(function(user, index) {
+                    let avatarHtml = `<i class="fas fa-user-circle fa-2x text-primary"></i>`;
+                    let roleBadge = (user.role && user.role.toUpperCase() === 'ADMIN') ?
+                        '<span class="badge bg-danger">Admin</span>' :
+                        '<span class="badge bg-info">User</span>';
+
+                    html += `
+                        <tr>
+                            <td>${currentUserPage * userPageSize + index + 1}</td>
+                            <td>${avatarHtml}</td>
+                            <td>${user.fullname}</td>
+                            <td>${user.email}</td>
+                            <td>${user.phone || 'N/A'}</td>
+                            <td>${roleBadge}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(${user.id})">
+                                    <i class="fas fa-edit"></i> Sửa
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${user.fullname}')">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            $('#usersTableBody').html(html);
+        }
+
+        function displayUserPagination(pageData) {
+            let html = '';
+
+            if (pageData.totalPages > 1) {
+                html += '<nav aria-label="User pagination"><ul class="pagination justify-content-center">';
+
+                // Previous
+                if (!pageData.first) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeUserPage(${currentUserPage - 1})">Trước</a></li>`;
+                }
+
+                // Page numbers
+                for (let i = 0; i < pageData.totalPages; i++) {
+                    if (i === currentUserPage) {
+                        html += `<li class="page-item active"><span class="page-link">${i + 1}</span></li>`;
+                    } else {
+                        html += `<li class="page-item"><a class="page-link" href="#" onclick="changeUserPage(${i})">${i + 1}</a></li>`;
+                    }
+                }
+
+                // Next
+                if (!pageData.last) {
+                    html += `<li class="page-item"><a class="page-link" href="#" onclick="changeUserPage(${currentUserPage + 1})">Sau</a></li>`;
+                }
+
+                html += '</ul></nav>';
+            }
+
+            $('#usersPagination').html(html);
+        }
+
+        function changeUserPage(page) {
+            currentUserPage = page;
+            loadUsers();
+        }
+
+        function editUser(id) {
+            $.ajax({
+                url: `/api/user/${id}`,
+                method: 'GET',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        const user = response.body;
+                        $('#userModalTitle').text('Chỉnh sửa User');
+                        $('#userId').val(user.id);
+                        $('#userFullname').val(user.fullname);
+                        $('#userEmail').val(user.email);
+                        $('#userPhone').val(user.phone || '');
+                        $('#userRole').val(user.role || 'USER');
+                        $('#userModal').modal('show');
+                    }
+                },
+                error: function() {
+                    showAlert('Lỗi khi tải thông tin người dùng', 'danger');
+                }
+            });
+        }
+
+        function openUserModal(userId = null) {
+            if (userId) {
+                // Edit mode
+                $.ajax({
+                    url: `/api/user/${userId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            const user = response.body;
+                            $('#userModalTitle').text('Chỉnh sửa User');
+                            $('#userId').val(user.id);
+                            $('#userFullname').val(user.fullname);
+                            $('#userEmail').val(user.email);
+                            $('#userPhone').val(user.phone || '');
+                            $('#userRole').val(user.role || 'USER');
+                            $('#userPasswordGroup').hide();
+                            $('#userModal').modal('show');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi tải thông tin người dùng', 'danger');
+                    }
+                });
+            } else {
+                // Add mode
+                $('#userModalTitle').text('Thêm User');
+                $('#userId').val('');
+                $('#userFullname').val('');
+                $('#userEmail').val('');
+                $('#userPhone').val('');
+                $('#userRole').val('USER');
+                $('#userPasswordGroup').show();
+                $('#userPassword').val('');
+                $('#userModal').modal('show');
+            }
+        }
+
+        function saveUserForm() {
+            const userId = $('#userId').val();
+            const fullname = $('#userFullname').val();
+            const email = $('#userEmail').val();
+            const phone = $('#userPhone').val();
+            const role = $('#userRole').val();
+            const password = $('#userPassword').val();
+
+            if (!fullname || fullname.trim().length < 2) {
+                showAlert('Họ tên phải có ít nhất 2 ký tự', 'warning');
+                return;
+            }
+
+            if (!email || !email.includes('@')) {
+                showAlert('Email không hợp lệ', 'warning');
+                return;
+            }
+
+            if (!userId && (!password || password.length < 6)) {
+                showAlert('Mật khẩu phải có ít nhất 6 ký tự', 'warning');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('fullname', fullname.trim());
+            formData.append('email', email.trim());
+            formData.append('phone', phone || '');
+            formData.append('role', role);
+
+            if (password) {
+                formData.append('password', password);
+            }
+
+            const url = userId ? `/api/user/${userId}` : '/api/user';
+            const method = userId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.status === 'success' || response.status === 'created') {
+                        showAlert(userId ? 'Cập nhật người dùng thành công' : 'Thêm người dùng thành công', 'success');
+                        $('#userModal').modal('hide');
+                        loadUsers();
+                    } else {
+                        showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    const errorMessage = xhr.responseJSON?.message || 'Lỗi khi lưu người dùng';
+                    showAlert(errorMessage, 'danger');
+                }
+            });
+        }
+
+        function deleteUser(id, name) {
+            if (confirm(`Bạn có chắc chắn muốn xóa người dùng "${name}"?`)) {
+                $.ajax({
+                    url: `/api/user/${id}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            showAlert('Xóa người dùng thành công', 'success');
+                            loadUsers();
+                        } else {
+                            showAlert(response.message || 'Có lỗi xảy ra', 'danger');
+                        }
+                    },
+                    error: function() {
+                        showAlert('Lỗi khi xóa người dùng', 'danger');
+                    }
+                });
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('#alertContainer').html(alertHtml);
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 5000);
         }
     </script>
 </body>
